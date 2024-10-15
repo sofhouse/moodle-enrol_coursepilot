@@ -33,7 +33,7 @@ if ($hassiteconfig) {
         $this->is_enabled() === false));
 
     $visiblename = get_string('setting_configpage', $pluginname);
-    $settings = new admin_settingpage($section, $visiblename, 'moodle/site:config',$this->is_enabled() === false);
+    $settings = new admin_settingpage($section, $visiblename, 'moodle/site:config', $this->is_enabled() === false);
 
     // Plugin Feature flag.
     $settings->add(new admin_setting_configcheckbox(
