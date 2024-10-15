@@ -22,8 +22,7 @@
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-// The base class 'enrol_plugin' can be found at lib/enrollib.php. Override
-// methods as necessary.
+// The base class 'enrol_plugin' can be found at lib/enrollib.php. Override methods as necessary.
 
 /**
  * Class enrol_coursepilot_plugin.
@@ -31,50 +30,48 @@
 class enrol_coursepilot_plugin extends enrol_plugin {
 
     /**
-     * Use the standard interface for adding/editing the form.
+     * Determines whether the standard editing UI should be used.
      *
-     * @since Moodle 3.1.
-     * @return bool.
+     * @return bool True if the standard editing UI should be used, false otherwise.
      */
     public function use_standard_editing_ui() {
         return true;
     }
 
     /**
-     * Adds form elements to add/edit instance form.
+     * Edits the instance form for the enrolment plugin.
      *
-     * @since Moodle 3.1.
-     * @param object $instance Enrol instance or null if does not exist yet.
-     * @param MoodleQuickForm $mform.
-     * @param context $context.
-     * @return void
+     * This function is responsible for modifying the enrolment instance form
+     * with additional fields or settings specific to this enrolment plugin.
+     *
+     * @param stdClass $instance The enrolment instance data.
+     * @param MoodleQuickForm $mform The form being used to edit the instance.
+     * @param context $context The context of the course or category.
      */
     public function edit_instance_form($instance, MoodleQuickForm $mform, $context) {
         // Do nothing by default.
     }
 
     /**
-     * Perform custom validation of the data used to edit the instance.
+     * Validates the data for editing an enrolment instance.
      *
-     * @since Moodle 3.1.
-     * @param array $data Array of ("fieldname"=>value) of submitted data.
-     * @param array $files Array of uploaded files "element_name"=>tmp_file_path.
-     * @param object $instance The instance data loaded from the DB.
-     * @param context $context The context of the instance we are editing.
-     * @return array Array of "element_name"=>"error_description" if there are errors, empty otherwise.
+     * @param array $data The data submitted from the form.
+     * @param array $files The files submitted from the form.
+     * @param stdClass $instance The enrolment instance being edited.
+     * @param context $context The context in which the enrolment instance exists.
+     * @return array An array of validation errors, if any.
      */
     public function edit_instance_validation($data, $files, $instance, $context) {
         // No errors by default.
         debugging('enrol_plugin::edit_instance_validation() is missing. This plugin has no validation!', DEBUG_DEVELOPER);
-        return array();
+        return [];
     }
 
     /**
-     * Return whether or not, given the current state, it is possible to add a new instance
-     * of this enrolment plugin to the course.
+     * Determines if an instance can be added to the specified course.
      *
-     * @param int $courseid.
-     * @return bool.
+     * @param int $courseid The ID of the course to check.
+     * @return bool True if an instance can be added, false otherwise.
      */
     public function can_add_instance($courseid) {
         return true;

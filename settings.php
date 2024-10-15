@@ -40,8 +40,8 @@ if ($hassiteconfig) {
         "{$pluginname}/enable",
         new lang_string('setting_enable', $pluginname),
         new lang_string('setting_enable_desc', $pluginname),
-        0)
-    );
+        0
+    ));
 
     // Template categories.
     $settings->add(new admin_setting_configmultiselect(
