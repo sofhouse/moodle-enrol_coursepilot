@@ -50,16 +50,21 @@ class external extends external_api {
     protected static function get_settings_course_categories($name = '') {
         global $DB;
 
+        // Validate that the name is not empty.
         if (empty($name)) {
             return [];
         }
 
+        // Get the settings for the specified course categories.
+        $enabled = get_config('enrol_coursepilot', 'enable');
         $config = get_config('enrol_coursepilot', $name);
 
-        if (empty($config) || !is_string($config)) {
+        // Validate that the settings are not empty.
+        if (empty($config) || empty($enabled) || !is_string($config)) {
             return [];
         }
 
+        // Get the course categories.
         $categories = [];
         foreach (explode(',', $config) as $category) {
             $category = trim($category);
