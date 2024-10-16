@@ -109,4 +109,37 @@ class external extends external_api {
         );
     }
 
+    /**
+     * Returns a list of coruse categories ids.
+     * @return array
+     */
+    public static function get_formations_categories() {
+        return self::get_settings_course_categories('formationcategories');
+    }
+
+    /**
+     * Returns description of method parameters.
+     * @return external_function_parameters
+     */
+    public static function get_formations_categories_parameters() {
+        return new external_function_parameters(
+            []
+        );
+    }
+
+    /**
+     * Returns description of method result value.
+     * @return external_multiple_structure
+     */
+    public static function get_formations_categories_returns(): external_multiple_structure {
+        return new external_multiple_structure(
+            new external_single_structure(
+                [
+                    'id' => new external_value(PARAM_INT, 'The category id.'),
+                    'name' => new external_value(PARAM_TEXT, 'The category name.'),
+                ]
+            )
+        );
+    }
+
 }
