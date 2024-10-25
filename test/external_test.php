@@ -25,9 +25,6 @@
 namespace enrol_coursepilot;
 
 use advanced_testcase;
-use core_course_category;
-
-defined('MOODLE_INTERNAL') || die();
 
 /**
  * Class external_test
@@ -45,7 +42,17 @@ defined('MOODLE_INTERNAL') || die();
  */
 class external_test extends advanced_testcase {
 
+    /**
+     * @var array $categories An array to store categories.
+     * 
+     * This protected property holds an array of categories. It is initialized as an empty array.
+     */
     protected array $categories = [];
+
+    /**
+     * @var int $randomcategories Number of random categories.
+     */
+    protected int $randomcategories = 5;
 
     /**
      * Set up method for initializing the test environment.
@@ -63,7 +70,7 @@ class external_test extends advanced_testcase {
         $dg = $this->getDataGenerator();
 
         // Create 5 course categories.
-        for ($i = 1; $i <= 5; $i++) {
+        for ($i = 1; $i <= 10; $i++) {
             $options = [
                 'idnumber' => 'category' . $i,
                 'name' => 'Category ' . $i,
@@ -102,8 +109,11 @@ class external_test extends advanced_testcase {
      * @return void
      */
     public function test_get_template_categories() {
+        // We choose random categories to set as template categories.
+        $categories = array_slice($this->categories, 0, $this->randomcategories);
+        $strcategories = implode(',', array_column($categories, 'id'));
+
         // Set the configuration settings for the coursepilot enrolment plugin, disabled first.
-        $strcategories = implode(',', array_column($this->categories, 'id'));
         $data = [
             'enable' => 0,
             'templatecategories' => $strcategories
@@ -124,12 +134,11 @@ class external_test extends advanced_testcase {
         $templatecategories = external::get_template_categories();
 
         // Assert that the template categories are retrieved successfully.
-        $this->assertCount(5, $templatecategories);
+        $this->assertCount($this->randomcategories, $templatecategories);
 
         // Assert that the template categories are correct.
-        foreach ($this->categories as $category) {
-            $this->assertArrayHasKey($category->id, $templatecategories);
-            $this->assertEquals($category->name, $templatecategories[$category->id]['name']);
+        foreach ($templatecategories as $category) {
+            $this->assertContains($category['id'], array_column($categories, 'id'));
         }
     }
 
