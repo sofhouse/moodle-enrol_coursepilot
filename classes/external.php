@@ -47,7 +47,7 @@ class external extends external_api {
      * @param string $name Optional. The name of the course category to filter by.
      * @return array The settings for the specified course categories.
      */
-    protected static function get_settings_course_categories($name = '') {
+    public static function get_settings_course_categories($name = '') {
         global $DB;
 
         // Validate that the name is not empty.
