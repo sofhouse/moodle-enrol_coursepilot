@@ -32,11 +32,12 @@ use advanced_testcase;
  * This class extends advanced_testcase and is used for testing purposes
  * within the Moodle enrolment coursepilot plugin.
  *
- * @runTestsInSeparateProcesses
  * @package    enrol_coursepilot
  * @category   test
  * @copyright  2024 Diego Monroy <dfelipe.monroyc@gmail.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ *
+ * @runTestsInSeparateProcesses
  */
 class external_test extends advanced_testcase {
 
