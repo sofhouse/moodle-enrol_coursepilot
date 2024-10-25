@@ -32,9 +32,7 @@ use advanced_testcase;
  * This class extends advanced_testcase and is used for testing purposes
  * within the Moodle enrolment coursepilot plugin.
  *
- *
  * @runTestsInSeparateProcesses
- *
  * @package    enrol_coursepilot
  * @category   test
  * @copyright  2024 Diego Monroy <dfelipe.monroyc@gmail.com>
@@ -44,7 +42,7 @@ class external_test extends advanced_testcase {
 
     /**
      * @var array $categories An array to store categories.
-     * 
+     *
      * This protected property holds an array of categories. It is initialized as an empty array.
      */
     protected array $categories = [];
@@ -69,7 +67,7 @@ class external_test extends advanced_testcase {
         // Initialize the database generator.
         $dg = $this->getDataGenerator();
 
-        // Create 5 course categories.
+        // Create 10 course categories.
         for ($i = 1; $i <= 10; $i++) {
             $options = [
                 'idnumber' => 'category' . $i,
