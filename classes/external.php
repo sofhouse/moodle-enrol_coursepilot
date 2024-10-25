@@ -47,19 +47,23 @@ class external extends external_api {
      * @param string $name Optional. The name of the course category to filter by.
      * @return array The settings for the specified course categories.
      */
-    protected static function get_settings_course_categories($name = '') {
+    public static function get_settings_course_categories($name = '') {
         global $DB;
 
         if (empty($name)) {
             return [];
         }
 
+        // Get the settings for the specified course categories.
+        $enabled = get_config('enrol_coursepilot', 'enable');
         $config = get_config('enrol_coursepilot', $name);
 
-        if (empty($config) || !is_string($config)) {
+        // Validate that the settings are not empty.
+        if (empty($config) || empty($enabled) || !is_string($config)) {
             return [];
         }
 
+        // Get the course categories.
         $categories = [];
         foreach (explode(',', $config) as $category) {
             $category = trim($category);
