@@ -100,7 +100,7 @@ class external_test extends advanced_testcase {
     }
 
     /**
-     * Test method for retrieving settings of course categories via the external API.
+     * Test method get_template_categories via the external API.
      *
      * This method is designed to test the functionality of getting
      * settings for course categories within the Moodle environment.
@@ -137,6 +137,48 @@ class external_test extends advanced_testcase {
 
         // Assert that the template categories are correct.
         foreach ($templatecategories as $category) {
+            $this->assertContains($category['id'], array_column($categories, 'id'));
+        }
+    }
+
+    /**
+     * Test method get_formations_categories via the external API.
+     *
+     * This method is designed to test the functionality of getting
+     * settings for course categories within the Moodle environment.
+     *
+     * @return void
+     */
+    public function test_get_formations_categories() {
+        // We choose random categories to set as template categories.
+        $categories = array_slice($this->categories, 0, $this->randomcategories);
+        $strcategories = implode(',', array_column($categories, 'id'));
+
+        // Set the configuration settings for the coursepilot enrolment plugin, disabled first.
+        $data = [
+            'enable' => 0,
+            'formationcategories' => $strcategories
+        ];
+        $this->set_enrol_coursepilot_settings($data);
+
+        // Retrieve the template categories.
+        $formationcategories = external::get_formations_categories();
+
+        // Assert that the template categories retrieved are empty.
+        $this->assertEmpty($formationcategories);
+
+        // Now we set the configuration settings for the coursepilot enrolment plugin, enabled.
+        $data['enable'] = 1;
+        $this->set_enrol_coursepilot_settings($data);
+
+        // Retrieve the template categories.
+        $formationcategories = external::get_formations_categories();
+
+        // Assert that the template categories are retrieved successfully.
+        $this->assertCount($this->randomcategories, $formationcategories);
+
+        // Assert that the template categories are correct.
+        foreach ($formationcategories as $category) {
             $this->assertContains($category['id'], array_column($categories, 'id'));
         }
     }
