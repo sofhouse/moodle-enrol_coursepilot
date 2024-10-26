@@ -26,7 +26,7 @@ defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'enrol_coursepilot';
 $plugin->release   = '1.0.0';
-$plugin->version   = 2024102500;
+$plugin->version   = 2024102600;
 $plugin->requires  = 2024042204;  // Requires Moodle 4.4.4.
 $plugin->supported = [404, 405];  // Supports Moodle 4.4 and 4.5.
 $plugin->maturity  = MATURITY_ALPHA;

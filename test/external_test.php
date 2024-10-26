@@ -22,7 +22,7 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace enrol_coursepilot;
+namespace enrol_coursepilot\external;
 
 use advanced_testcase;
 
@@ -100,7 +100,39 @@ class external_test extends advanced_testcase {
     }
 
     /**
-     * Test method get_template_categories via the external API.
+     * Retrieves a list of random categories.
+     *
+     * This method fetches a set of categories randomly selected from the available categories.
+     *
+     * @return array An array of randomly selected categories.
+     */
+    protected function get_random_categories() {
+        // If there are no categories, return an empty array.
+        if (empty($this->categories)) {
+            return [];
+        }
+
+        // If the number of categories is less than the random categories, return all categories.
+        if (count($this->categories) <= $this->randomcategories) {
+            return $this->categories;
+        }
+
+        // We choose random categories to set as template categories.
+        $randomkeys = array_rand($this->categories, $this->randomcategories);
+
+        // If only one key is returned, wrap it in an array for consistency.
+        if (!is_array($randomkeys)) {
+            $randomkeys = [$randomkeys];
+        }
+
+        // Retrieve the random categories using the selected keys and return them.
+        return array_map(function($key) {
+            return $this->categories[$key];
+        }, $randomkeys);
+    }
+
+    /**
+     * Test method get_formations_categories via the external API.
      *
      * This method is designed to test the functionality of getting
      * settings for course categories within the Moodle environment.
@@ -108,8 +140,10 @@ class external_test extends advanced_testcase {
      * @return void
      */
     public function test_get_template_categories() {
-        // We choose random categories to set as template categories.
-        $categories = array_slice($this->categories, 0, $this->randomcategories);
+        // We get random categories to set as template categories.
+        $categories = $this->get_random_categories();
+
+        // Convert the randomly chosen categories to a comma-separated string of IDs.
         $strcategories = implode(',', array_column($categories, 'id'));
 
         // Set the configuration settings for the coursepilot enrolment plugin, disabled first.
@@ -120,7 +154,7 @@ class external_test extends advanced_testcase {
         $this->set_enrol_coursepilot_settings($data);
 
         // Retrieve the template categories.
-        $templatecategories = external::get_template_categories();
+        $templatecategories = \enrol_coursepilot\external::get_template_categories();
 
         // Assert that the template categories retrieved are empty.
         $this->assertEmpty($templatecategories);
@@ -130,7 +164,7 @@ class external_test extends advanced_testcase {
         $this->set_enrol_coursepilot_settings($data);
 
         // Retrieve the template categories.
-        $templatecategories = external::get_template_categories();
+        $templatecategories = \enrol_coursepilot\external::get_template_categories();
 
         // Assert that the template categories are retrieved successfully.
         $this->assertCount($this->randomcategories, $templatecategories);
