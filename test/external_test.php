@@ -132,7 +132,7 @@ class external_test extends advanced_testcase {
     }
 
     /**
-     * Test method get_formations_categories via the external API.
+     * Test method get_template_categories via the external API.
      *
      * This method is designed to test the functionality of getting
      * settings for course categories within the Moodle environment.
