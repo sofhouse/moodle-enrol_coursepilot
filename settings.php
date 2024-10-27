@@ -29,9 +29,11 @@ if ($hassiteconfig) {
     $pluginname = 'enrol_coursepilot';
     $categories = core_course_category::make_categories_list('moodle/category:manage');
 
+    // Add a new category to the enrolments category.
     $ADMIN->add('enrolments', new admin_category('enrolcoursepilotfolder', new lang_string('pluginname', $pluginname),
         $this->is_enabled() === false));
 
+    // Add a new section to the enrolments category.
     $visiblename = get_string('setting_configpage', $pluginname);
     $settings = new admin_settingpage($section, $visiblename, 'moodle/site:config', $this->is_enabled() === false);
 

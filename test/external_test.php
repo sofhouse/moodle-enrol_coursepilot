@@ -184,8 +184,10 @@ class external_test extends advanced_testcase {
      * @return void
      */
     public function test_get_formations_categories() {
-        // We choose random categories to set as template categories.
-        $categories = array_slice($this->categories, 0, $this->randomcategories);
+        // We get random categories to set as formation categories.
+        $categories = $this->get_random_categories();
+
+        // Convert the randomly chosen categories to a comma-separated string of IDs.
         $strcategories = implode(',', array_column($categories, 'id'));
 
         // Set the configuration settings for the coursepilot enrolment plugin, disabled first.
@@ -196,7 +198,7 @@ class external_test extends advanced_testcase {
         $this->set_enrol_coursepilot_settings($data);
 
         // Retrieve the template categories.
-        $formationcategories = external::get_formations_categories();
+        $formationcategories = \enrol_coursepilot\external::get_formations_categories();
 
         // Assert that the template categories retrieved are empty.
         $this->assertEmpty($formationcategories);
@@ -206,7 +208,7 @@ class external_test extends advanced_testcase {
         $this->set_enrol_coursepilot_settings($data);
 
         // Retrieve the template categories.
-        $formationcategories = external::get_formations_categories();
+        $formationcategories = \enrol_coursepilot\external::get_formations_categories();
 
         // Assert that the template categories are retrieved successfully.
         $this->assertCount($this->randomcategories, $formationcategories);
