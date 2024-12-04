@@ -36,3 +36,11 @@ $string['setting_template_categories'] = 'Template Categories';
 $string['setting_template_categories_desc'] = 'These categories will be used when listing template courses for copying.';
 $string['setting_formation_categories'] = 'Formations Categories';
 $string['setting_formation_categories_desc'] = 'These categories will be used for validating when users are enrolled to formations courses.';
+
+// API.
+$string['api_plugin_disabled'] = 'The Course Pilot plugin is disabled.';
+$string['api_invalid_courseid'] = 'The template course {$a} does not exist or the category is not set to be used as a template.';
+$string['api_invalid_formationid'] = 'The formation course category {$a} does not exist or is not set to be used as a formation.';
+$string['api_course_was_not_copied'] = 'The course could was not copied.';
+$string['api_no_permission'] = 'You do not have permission to perform this action.';
+$string['api_course_copy_queued'] = 'The course copy has been queued and will be created shortly';

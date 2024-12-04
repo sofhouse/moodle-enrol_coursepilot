@@ -29,6 +29,7 @@ defined('MOODLE_INTERNAL') || die;
 global $CFG;
 require_once($CFG->libdir . "/externallib.php");
 require_once($CFG->dirroot . "/course/externallib.php");
+require_once($CFG->dirroot . '/backup/util/includes/backup_includes.php');
 
 use external_api;
 use external_function_parameters;
@@ -55,9 +56,11 @@ class external extends external_api {
             return [];
         }
 
+        $pluginname = 'enrol_coursepilot';
+
         // Get the settings for the specified course categories.
-        $enabled = get_config('enrol_coursepilot', 'enable');
-        $config = get_config('enrol_coursepilot', $name);
+        $enabled = get_config($pluginname, 'enable');
+        $config = get_config($pluginname, $name);
 
         // Validate that the settings are not empty.
         if (empty($config) || empty($enabled) || !is_string($config)) {
@@ -83,6 +86,7 @@ class external extends external_api {
 
     /**
      * Returns a list of coruse categories ids.
+     *
      * @return array
      */
     public static function get_template_categories() {
@@ -91,6 +95,7 @@ class external extends external_api {
 
     /**
      * Returns description of method parameters.
+     *
      * @return external_function_parameters
      */
     public static function get_template_categories_parameters() {
@@ -101,6 +106,7 @@ class external extends external_api {
 
     /**
      * Returns description of method result value.
+     *
      * @return external_multiple_structure
      */
     public static function get_template_categories_returns(): external_multiple_structure {
@@ -116,6 +122,7 @@ class external extends external_api {
 
     /**
      * Returns a list of coruse categories ids.
+     *
      * @return array
      */
     public static function get_formations_categories() {
@@ -134,6 +141,7 @@ class external extends external_api {
 
     /**
      * Returns description of method result value.
+     *
      * @return external_multiple_structure
      */
     public static function get_formations_categories_returns(): external_multiple_structure {
@@ -144,6 +152,149 @@ class external extends external_api {
                     'name' => new external_value(PARAM_TEXT, 'The category name.'),
                 ]
             )
+        );
+    }
+
+    /**
+     * Creates a new course based on a template course.
+     *
+     * @param int $templatecourseid The ID of the template course to copy.
+     * @param int $targetformationscatid The ID of the category where the new course will be created.
+     * @param string $coursename The name of the new course.
+     * @param string $courseshortname The short name of the new course.
+     * @param string $summary Optional. The summary of the new course.
+     * @param string $idnumber Optional. The ID number of the new course.
+     * 
+     * @return array The result of the operation.
+     * @throws moodle_exception If the course creation fails.
+     */
+    public static function create_course($templatecourseid, $targetformationscatid, $coursename,
+            $courseshortname, $summary = '', $idnumber = '') {
+        global $DB, $USER;
+
+        $pluginname = 'enrol_coursepilot';
+
+        // Initialize the response.
+        $response = [
+            'process' => 'copy',
+            'message' => '',
+            'status' => 'error',
+            'courseid' => 0,
+            'copyids' => [
+                'backupid' => 0,
+                'restoreid' => 0,
+            ],
+        ];
+
+        // Validate that the plugin is enabled.
+        $enabled = get_config($pluginname, 'enable');
+        if (empty($enabled)) {
+            $response['message'] = get_string('api_plugin_disabled', $pluginname);
+            return $response;
+        }
+
+        // Verify Capability.
+        if (!has_capability('moodle/backup:backupsection', \context_system::instance(), $USER->id)) {
+            $response['message'] = get_string('api_no_permission', $pluginname);
+            return $response;
+        }
+
+        // Get the settings for the template categories and the template course.
+        $templatecategories = self::get_settings_course_categories('templatecategories');
+        $templatecourse = $DB->get_record('course', ['id' => $templatecourseid]);
+
+        // Validate that the template course exists and template categories are not empty.
+        if (empty($templatecourse) || empty($templatecourse->category) || empty($templatecategories)) {
+            $response['message'] = get_string('api_invalid_courseid', $pluginname, $templatecourseid);
+            return $response;
+        }
+
+        // Validate that the course ourse lives under one of the template course categories and is set to be used as a template.
+        if (!array_key_exists($templatecourse->category, $templatecategories)) {
+            $response['message'] = get_string('api_invalid_courseid', $pluginname, $templatecourseid);
+            return $response;
+        }
+
+        // Validate that the target category exists and is set to be used as a formation setting.
+        $formationcategories = self::get_settings_course_categories('formationcategories');
+        if (!array_key_exists($targetformationscatid, $formationcategories)) {
+            $response['message'] = get_string('api_invalid_formationid', $pluginname, $targetformationscatid);
+            return $response;
+        }
+
+        // Create a new course based on the template course.
+        $courseobject = get_course($templatecourseid);
+        $courseobject->courseid = $templatecourseid;
+        $courseobject->keptroles = [];
+        $courseobject->userdata = 0;
+        $courseobject->category = $targetformationscatid;
+        $courseobject->fullname = $coursename;
+        $courseobject->shortname = $courseshortname;
+        $courseobject->summary = $summary;
+        $courseobject->idnumber = $idnumber;
+        $copyids = \copy_helper::create_copy($courseobject);
+
+        // Validate that the course was copied, if not return the response error.
+        if (empty($copyids)) {
+            $response['message'] = get_string('api_course_was_not_copied', $pluginname);
+            return $response;
+        }
+
+        // Get the new course id.
+        $controller = $DB->get_record('backup_controllers', ['backupid' => $copyids['restoreid']]);
+        $newcourseid = $controller->itemid ?? 0;
+
+        // Return the response.
+        $response['message'] = get_string('api_course_copy_queued', $pluginname);
+        $response['status'] = 'queued';
+        $response['courseid'] = $newcourseid;
+        $response['copyids'] = $copyids;
+
+        return $response;
+    }
+
+    /**
+     * Returns the description of the parameters required for creating a course.
+     *
+     * @return external_function_parameters The parameters required for the function.
+     */
+    public static function create_course_parameters() {
+        $templatedesc = 'Reference to a course that lives under one of the template course categories.';
+        $targetdesc = 'Reference to the target category id where the course will be created.';
+
+        return new external_function_parameters(
+            [
+                'templatecourseid' => new external_value(PARAM_INT, $templatedesc, VALUE_REQUIRED),
+                'targetformationscatid' => new external_value(PARAM_INT, $targetdesc , VALUE_REQUIRED),
+                'coursename' => new external_value(PARAM_TEXT, 'The name of the course.', VALUE_REQUIRED),
+                'courseshortname' => new external_value(PARAM_ALPHANUMEXT, 'The short name of the course.', VALUE_REQUIRED),
+                'summary' => new external_value(PARAM_RAW, 'The summary of the course.', VALUE_OPTIONAL),
+                'idnumber' => new external_value(PARAM_ALPHANUMEXT, 'The ID number of the course.', VALUE_OPTIONAL),
+            ]
+        );
+    }
+
+    /**
+     * Returns the description of the create_course_returns function.
+     *
+     * @return external_single_structure The structure of the returned data.
+     */
+    public static function create_course_returns() {
+        return new external_single_structure(
+            [
+                'message' => new external_value(PARAM_TEXT, 'The result of the operation.'),
+                'process' => new external_value(PARAM_TEXT, 'The process that is currently running.', VALUE_OPTIONAL),
+                'status' => new external_value(PARAM_TEXT, 'The status of the operation.', VALUE_OPTIONAL),
+                'courseid' => new external_value(PARAM_INT, 'The id of the new course.', VALUE_OPTIONAL),
+                'copyids' => new external_single_structure(
+                [
+                    'backupid' => new external_value(PARAM_RAW, 'The backup id.'),
+                    'restoreid' => new external_value(PARAM_RAW, 'The restore id.'),
+                ],
+                'The backup and restore ids.',
+                VALUE_OPTIONAL
+            ),
+            ]
         );
     }
 
