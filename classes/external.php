@@ -164,7 +164,7 @@ class external extends external_api {
      * @param string $courseshortname The short name of the new course.
      * @param string $summary Optional. The summary of the new course.
      * @param string $idnumber Optional. The ID number of the new course.
-     * 
+     *
      * @return array The result of the operation.
      * @throws moodle_exception If the course creation fails.
      */
@@ -244,7 +244,7 @@ class external extends external_api {
         $controller = $DB->get_record('backup_controllers', ['backupid' => $copyids['restoreid']]);
         $newcourseid = $controller->itemid ?? 0;
 
-        // Return the response.
+        // Prepare the response.
         $response['message'] = get_string('api_course_copy_queued', $pluginname);
         $response['status'] = 'queued';
         $response['courseid'] = $newcourseid;
@@ -282,9 +282,9 @@ class external extends external_api {
     public static function create_course_returns() {
         return new external_single_structure(
             [
-                'message' => new external_value(PARAM_TEXT, 'The result of the operation.'),
-                'process' => new external_value(PARAM_TEXT, 'The process that is currently running.', VALUE_OPTIONAL),
-                'status' => new external_value(PARAM_TEXT, 'The status of the operation.', VALUE_OPTIONAL),
+                'process' => new external_value(PARAM_TEXT, 'The process that is currently running.', VALUE_REQUIRED),
+                'status' => new external_value(PARAM_TEXT, 'The status of the operation.', VALUE_REQUIRED),
+                'message' => new external_value(PARAM_TEXT, 'The result of the operation.', VALUE_REQUIRED),
                 'courseid' => new external_value(PARAM_INT, 'The id of the new course.', VALUE_OPTIONAL),
                 'copyids' => new external_single_structure(
                 [
