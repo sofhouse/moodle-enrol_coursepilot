@@ -42,6 +42,14 @@ $functions = [
         'type' => 'read',
         'ajax' => true,
     ],
+    'enrol_coursepilot_create_course' => [
+        'classname' => 'enrol_coursepilot\external',
+        'methodname' => 'create_course',
+        'classpath' => 'enrol/coursepilot/classes/external.php',
+        'description' => 'Create a course into a formations category by copying a course from the templates category',
+        'type' => 'read',
+        'ajax' => true,
+    ],
 ];
 
 // We define the services to install as pre-build services. A pre-build service is not editable by administrator.
@@ -50,6 +58,7 @@ $services = [
         'functions' => [
             'enrol_coursepilot_get_template_categories',
             'enrol_coursepilot_get_formations_categories',
+            'enrol_coursepilot_create_course',
         ],
         'restrictedusers' => 0,
         'enabled' => 1,

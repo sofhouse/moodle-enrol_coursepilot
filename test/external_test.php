@@ -219,4 +219,98 @@ class external_test extends advanced_testcase {
         }
     }
 
+    /**
+     * Test the creation of a course.
+     *
+     * This function is used to test the creation of a course in the Moodle
+     * environment. It ensures that the course creation process works as expected.
+     *
+     * @return void
+     */
+    public function test_create_course() {
+        // Set the configuration settings for the coursepilot enrolment plugin, disabled first.
+        $data = [
+            'enable' => 0,
+        ];
+        $this->set_enrol_coursepilot_settings($data);
+
+        // Attempt to create a course.
+        $course = \enrol_coursepilot\external::create_course(
+            1,
+            2,
+            'Course Test 1',
+            'coursetest1',
+            'Course Test 1 Description',
+            'IDNUMBER1',
+        );
+
+        // Assert that the course creation failed due to the plugin being disabled.
+        $expectedmessage = get_string('api_plugin_disabled', 'enrol_coursepilot');
+        $this->assertEquals('error', $course['status']);
+        $this->assertEquals(0, $course['courseid']);
+        $this->assertEquals($expectedmessage, $course['message']);
+
+        // Now we set the configuration settings for the coursepilot enrolment plugin, enabled.
+        $data['enable'] = 1;
+        $this->set_enrol_coursepilot_settings($data);
+
+        // Attempt to create a course.
+        $course = \enrol_coursepilot\external::create_course(
+            1,
+            2,
+            'Course Test 1',
+            'coursetest1',
+            'Course Test 1 Description',
+            'IDNUMBER1',
+        );
+
+        // Assert that the course creation failed due not configuring the template categories.
+        $expectedmessage = get_string('api_invalid_courseid', 'enrol_coursepilot', 1);
+        $this->assertEquals('error', $course['status']);
+        $this->assertEquals($expectedmessage, $course['message']);
+
+        // Initialize the database generator.
+        $dg = $this->getDataGenerator();
+
+        // We are creating 1 template category.
+        $templatecategory = $dg->create_category([
+            'idnumber' => 'templatecategory',
+            'name' => 'Template Category',
+            'description' => 'Template Category description',
+        ]);
+
+        // We are creating 1 formation category.
+        $formationcategory = $dg->create_category([
+            'idnumber' => 'formationcategory',
+            'name' => 'Formation Category',
+            'description' => 'Formation Category description',
+        ]);
+
+        // We are creating 1 course under the template category.
+        $course = $dg->create_course([
+            'category' => $templatecategory->id,
+        ]);
+
+        // Set the configuration settings.
+        $data['templatecategories'] = $templatecategory->id;
+        $data['formationcategories'] = $formationcategory->id;
+        $this->set_enrol_coursepilot_settings($data);
+
+        // Attempt to create a course.
+        $course = \enrol_coursepilot\external::create_course(
+            $course->id,
+            $formationcategory->id,
+            'Course Test 1',
+            'coursetest1',
+            'Course Test 1 Description',
+            'IDNUMBER1',
+        );
+
+        // Assert that the course creation was successfully queued.
+        $expectedmessage = get_string('api_course_copy_queued', 'enrol_coursepilot');
+        $this->assertEquals('queued', $course['status']);
+        $this->assertEquals($expectedmessage, $course['message']);
+
+    }
+
 }
