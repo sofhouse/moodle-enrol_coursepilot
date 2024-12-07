@@ -305,6 +305,7 @@ class external extends external_api {
      * @param int $courseid The ID of the course to enroll the user into.
      * @param int $userid The ID of the user to enroll.
      * @param string $action The action to perform. Either 'enroll' or 'unenroll'.
+     * @param int $roleid The role id to assign to the user.
      *
      * @return array The result of the operation.
      */
