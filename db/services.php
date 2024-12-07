@@ -62,7 +62,7 @@ $functions = [
 
 // We define the services to install as pre-build services. A pre-build service is not editable by administrator.
 $services = [
-    'Enrol Course Pilot Configuration Service' => [
+    'Enrol Course Pilot Service' => [
         'functions' => [
             'enrol_coursepilot_get_template_categories',
             'enrol_coursepilot_get_formations_categories',
