@@ -1,6 +1,10 @@
 # Enrol Course Pilot #
 
-TODO Describe the plugin shortly here.
+The Enrol Course Pilot plugin seamlessly integrates with Moodle's course copy functionality, 
+providing a streamlined solution for managing user enrolments in courses within designated formation categories. 
+
+This plugin enables the efficient duplication of courses from a template category into formation categories, 
+while offering a simple management of enrolments for formation courses.
 
 ## Installing via uploaded ZIP file ##
 
