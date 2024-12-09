@@ -18,11 +18,17 @@
  * External API Test cases for enrol_coursepilot
  *
  * @package   enrol_coursepilot
+ * @category  test
  * @copyright 2024 Diego Monroy <dfelipe.monroyc@gmail.com>
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 namespace enrol_coursepilot\external;
+
+defined('MOODLE_INTERNAL') || die();
+
+global $CFG;
+require_once($CFG->dirroot . "/enrol/coursepilot/lib.php");
 
 use advanced_testcase;
 
@@ -310,7 +316,194 @@ class external_test extends advanced_testcase {
         $expectedmessage = get_string('api_course_copy_queued', 'enrol_coursepilot');
         $this->assertEquals('queued', $course['status']);
         $this->assertEquals($expectedmessage, $course['message']);
+    }
 
+    /**
+     * Test the editing of an enrollment.
+     *
+     * This function is used to test the editing of an enrollment in the Moodle
+     * environment. It ensures that the enrollment editing process works as expected.
+     *
+     * @return void
+     */
+    public function test_edit_enrollment() {
+        $pluginname = 'enrol_coursepilot';
+
+        // Set the configuration settings for the coursepilot enrolment plugin, disabled first.
+        $data = [
+            'enable' => 0,
+        ];
+        $this->set_enrol_coursepilot_settings($data);
+
+        // Get roles for student and teacher.
+        $studentrole = enrol_coursepilot_get_valid_roles('student')[0];
+        $teacherrole = enrol_coursepilot_get_valid_roles('teacher')[0];
+
+        // Attempt to edit an enrollment.
+        $enrollment = \enrol_coursepilot\external::edit_enrollment(
+            1,
+            2,
+            3,
+            $studentrole,
+        );
+
+        // Assert that the enrollment editing failed due to the plugin being disabled.
+        $expectedmessage = get_string('api_plugin_disabled', $pluginname);
+        $this->assertEquals('error', $enrollment['status']);
+        $this->assertEquals($expectedmessage, $enrollment['message']);
+
+        // Now we set the configuration settings for the coursepilot enrolment plugin, enabled.
+        $data['enable'] = 1;
+        $this->set_enrol_coursepilot_settings($data);
+
+        // Attempt to edit an enrollment with invalid parameters.
+        $enrollment = \enrol_coursepilot\external::edit_enrollment(
+            1,
+            2,
+            3, // Invalid action.
+            'student' // Invalid roleid field.
+        );
+
+        // Assert that the enrollment editing failed due to invalid parameters.
+        $expectedmessage = get_string('api_invalid_parameters', $pluginname);
+        $this->assertEquals('error', $enrollment['status']);
+        $this->assertEquals($expectedmessage, $enrollment['message']);
+
+        // Attempt to edit an enrollment with invalid course, it doest not belong to a formation category.
+        $enrollment = \enrol_coursepilot\external::edit_enrollment(
+            1, // Invalid course or doesn't belong to a formation category.
+            2,
+            'enroll',
+            roleid: $studentrole,
+        );
+
+        // Assert that the enrollment editing failed due to the course not belonging to a formation category.
+        $nocategory = 0;
+        $expectedmessage = get_string('api_invalid_formationid', $pluginname, $nocategory);
+        $this->assertEquals('error', $enrollment['status']);
+        $this->assertEquals($expectedmessage, $enrollment['message']);
+
+        // Initialize the database generator.
+        $dg = $this->getDataGenerator();
+
+        // We are creating 1 user.
+        $user = $dg->create_user();
+
+        // We are creating 1 formation category.
+        $formationcategory = $dg->create_category([
+            'idnumber' => 'formationcategory',
+            'name' => 'Formation Category',
+            'description' => 'Formation Category description',
+        ]);
+
+        // We set the configuration settings to set formation categories.
+        $data['formationcategories'] = $formationcategory->id;
+        $this->set_enrol_coursepilot_settings($data);
+
+        // We are creating 1 course under the formation category.
+        $course = $dg->create_course([
+            'category' => $formationcategory->id,
+        ]);
+
+        // Attempt to edit an enrollment with invalid user.
+        $enrollment = \enrol_coursepilot\external::edit_enrollment(
+            $course->id,
+            100, // Invalid user.
+            'enroll',
+            $studentrole,
+        );
+
+        // Assert that the enrollment editing failed due to the user not existing.
+        $expectedmessage = get_string('api_invalid_userid', $pluginname, 100);
+        $this->assertEquals('error', $enrollment['status']);
+        $this->assertEquals($expectedmessage, $enrollment['message']);
+
+        // Attempt to edit an enrollment with valid parameters, action enroll.
+        $enrollment = \enrol_coursepilot\external::edit_enrollment(
+            $course->id,
+            $user->id,
+            'enroll',
+            $studentrole,
+        );
+
+        // Construct the expected message.
+        $expectedmessage = get_string('api_enrollment_updated', $pluginname, [
+            'username' => $user->username,
+            'action' => get_string('enrolled', $pluginname),
+            'courseid' => $course->id,
+        ]);
+
+        // Assert that the enrollment editing was successful.
+        $this->assertEquals('success', $enrollment['status']);
+        $this->assertEquals($expectedmessage, $enrollment['message']);
+
+        // Attempt to edit an enrollment with valid parameters, action enroll, user already enrolled.
+        $enrollment = \enrol_coursepilot\external::edit_enrollment(
+            $course->id,
+            $user->id,
+            'enroll',
+            $studentrole,
+        );
+
+        // Construct the expected message.
+        $expectedmessage = get_string('api_user_already_enrolled', $pluginname, $course->id);
+
+        // Assert that the enrollment editing failed due to the user already enrolled.
+        $this->assertEquals('error', $enrollment['status']);
+        $this->assertEquals($expectedmessage, $enrollment['message']);
+
+        // Attempt to edit an enrollment with valid parameters, action unenroll.
+        $enrollment = \enrol_coursepilot\external::edit_enrollment(
+            $course->id,
+            $user->id,
+            'unenroll',
+            $studentrole,
+        );
+
+        // Construct the expected message.
+        $expectedmessage = get_string('api_enrollment_updated', $pluginname, [
+            'username' => $user->username,
+            'action' => get_string('unenrolled', $pluginname),
+            'courseid' => $course->id,
+        ]);
+
+        // Assert that the enrollment editing was successful.
+        $this->assertEquals('success', $enrollment['status']);
+        $this->assertEquals($expectedmessage, $enrollment['message']);
+
+        // Attempt to edit an enrollment with valid parameters, action unenroll, user already unenrolled.
+        $enrollment = \enrol_coursepilot\external::edit_enrollment(
+            $course->id,
+            $user->id,
+            'unenroll',
+            $studentrole,
+        );
+
+        // Construct the expected message.
+        $expectedmessage = get_string('api_user_already_unenrolled', $pluginname, $course->id);
+
+        // Assert that the enrollment editing failed due to the user already unenrolled.
+        $this->assertEquals('error', $enrollment['status']);
+        $this->assertEquals($expectedmessage, $enrollment['message']);
+
+        // Attempt to edit an enrollment with valid parameters, action enroll and different valid roleid.
+        $enrollment = \enrol_coursepilot\external::edit_enrollment(
+            $course->id,
+            $user->id,
+            'enroll',
+            $teacherrole,
+        );
+
+        // Construct the expected message.
+        $expectedmessage = get_string('api_enrollment_updated', $pluginname, [
+            'username' => $user->username,
+            'action' => get_string('enrolled', $pluginname),
+            'courseid' => $course->id,
+        ]);
+
+        // Assert that the enrollment editing was successful.
+        $this->assertEquals('success', $enrollment['status']);
+        $this->assertEquals($expectedmessage, $enrollment['message']);
     }
 
 }

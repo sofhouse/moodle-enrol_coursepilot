@@ -27,8 +27,10 @@ namespace enrol_coursepilot;
 defined('MOODLE_INTERNAL') || die;
 
 global $CFG;
+require_once($CFG->dirroot . "/enrol/coursepilot/lib.php");
 require_once($CFG->libdir . "/externallib.php");
 require_once($CFG->dirroot . "/course/externallib.php");
+require_once($CFG->dirroot . '/lib/accesslib.php');
 require_once($CFG->dirroot . '/backup/util/includes/backup_includes.php');
 
 use external_api;
@@ -36,6 +38,7 @@ use external_function_parameters;
 use external_multiple_structure;
 use external_single_structure;
 use external_value;
+use stdClass;
 
 /**
  * Represents an external class that extends the external_api class.
@@ -48,7 +51,7 @@ class external extends external_api {
      * @param string $name Optional. The name of the course category to filter by.
      * @return array The settings for the specified course categories.
      */
-    public static function get_settings_course_categories($name = '') {
+    public static function get_settings_course_categories($name = ''): array {
         global $DB;
 
         // Validate that the name is not empty.
@@ -89,7 +92,7 @@ class external extends external_api {
      *
      * @return array
      */
-    public static function get_template_categories() {
+    public static function get_template_categories(): array {
         return self::get_settings_course_categories('templatecategories');
     }
 
@@ -98,7 +101,7 @@ class external extends external_api {
      *
      * @return external_function_parameters
      */
-    public static function get_template_categories_parameters() {
+    public static function get_template_categories_parameters(): external_function_parameters {
         return new external_function_parameters(
             []
         );
@@ -125,7 +128,7 @@ class external extends external_api {
      *
      * @return array
      */
-    public static function get_formations_categories() {
+    public static function get_formations_categories(): array {
         return self::get_settings_course_categories('formationcategories');
     }
 
@@ -133,7 +136,7 @@ class external extends external_api {
      * Returns description of method parameters.
      * @return external_function_parameters
      */
-    public static function get_formations_categories_parameters() {
+    public static function get_formations_categories_parameters(): external_function_parameters {
         return new external_function_parameters(
             []
         );
@@ -169,7 +172,7 @@ class external extends external_api {
      * @throws moodle_exception If the course creation fails.
      */
     public static function create_course($templatecourseid, $targetformationscatid, $coursename,
-            $courseshortname, $summary = '', $idnumber = '') {
+            $courseshortname, $summary = '', $idnumber = ''): array {
         global $DB, $USER;
 
         $pluginname = 'enrol_coursepilot';
@@ -258,7 +261,7 @@ class external extends external_api {
      *
      * @return external_function_parameters The parameters required for the function.
      */
-    public static function create_course_parameters() {
+    public static function create_course_parameters(): external_function_parameters {
         $templatedesc = 'Reference to a course that lives under one of the template course categories.';
         $targetdesc = 'Reference to the target category id where the course will be created.';
 
@@ -279,7 +282,7 @@ class external extends external_api {
      *
      * @return external_single_structure The structure of the returned data.
      */
-    public static function create_course_returns() {
+    public static function create_course_returns(): external_single_structure {
         return new external_single_structure(
             [
                 'process' => new external_value(PARAM_TEXT, 'The process that is currently running.', VALUE_REQUIRED),
@@ -294,6 +297,182 @@ class external extends external_api {
                 'The backup and restore ids.',
                 VALUE_OPTIONAL
             ),
+            ]
+        );
+    }
+
+    /**
+     * Enrolls and unenrolls a user into a formations course.
+     *
+     * @param int $courseid The ID of the course to enroll the user into.
+     * @param int $userid The ID of the user to enroll.
+     * @param string $action The action to perform. Either 'enroll' or 'unenroll'.
+     * @param int $roleid The role id to assign to the user.
+     *
+     * @return array The result of the operation.
+     */
+    public static function edit_enrollment($courseid, $userid, $action = '', $roleid = 0): array {
+        global $DB;
+
+        // Initialize the variables to validate the parameters.
+        $pluginname = 'enrol_coursepilot';
+        $validactions = ['enroll', 'unenroll'];
+        $validroles = enrol_coursepilot_get_valid_roles();
+
+        // I the role id is empty, set the default role id to student.
+        if (empty($roleid)) {
+            $roleid = $DB->get_field('role', 'id', ['shortname' => 'student']);
+        }
+
+        // Initialize the response.
+        $response = [
+            'action' => $action,
+            'message' => '',
+            'status' => 'error',
+        ];
+
+        // Validate that the plugin is enabled.
+        $enabled = get_config($pluginname, 'enable');
+        if (empty($enabled)) {
+            $response['message'] = get_string('api_plugin_disabled', $pluginname);
+            return $response;
+        }
+
+        // Validate parameters.
+        if (empty($courseid) || empty($userid) || empty($action) || !is_string($action)
+                || !in_array($action, $validactions)) {
+            $response['message'] = get_string('api_invalid_parameters', $pluginname, $courseid);
+            return $response;
+        }
+
+        // Validate the role id.
+        if (!in_array($roleid, $validroles)) {
+            $response['message'] = get_string('api_invalid_roleid_parameter', $pluginname, $roleid);
+            return $response;
+        }
+
+        // Get the course and user.
+        $course = $DB->get_record('course', ['id' => $courseid]);
+        $user = $DB->get_record('user', ['id' => $userid]);
+
+        // Validate that the course exist.
+        if (empty($course)) {
+            $response['message'] = get_string('api_invalid_courseid', $pluginname, $courseid);
+            return $response;
+        }
+
+        // Get the formation categories.
+        $formationcategories = self::get_settings_course_categories('formationcategories');
+
+        // Validate that the course lives under one of the formation categories.
+        if (!array_key_exists($course->category, $formationcategories)) {
+            $response['message'] = get_string('api_invalid_formationid', $pluginname, $course->category);
+            return $response;
+        }
+
+        // Validate that the user exist.
+        if (empty($user)) {
+            $response['message'] = get_string('api_invalid_userid', $pluginname, $userid);
+            return $response;
+        }
+
+        // Validate the enrolment method plugin.
+        $enroll = enrol_get_plugin('manual');
+        if (empty($enroll)) {
+            $response['message'] = get_string('api_no_enrolment_method', $pluginname, $courseid);
+        }
+
+        // Get the enrolment instance for the manual method in the course.
+        $enrolinstances = enrol_get_instances($course->id, true);
+        $manualinstance = null;
+        if (!empty($enrolinstances)) {
+            foreach ($enrolinstances as $instance) {
+                if ($instance->enrol === 'manual') {
+                    $manualinstance = $instance;
+                    break;
+                }
+            }
+        }
+
+        // Validate that the manual enrolment instance exists in the course.
+        if (empty($manualinstance)) {
+            $response['message'] = get_string('api_no_enrolment_method', $pluginname, $courseid);
+            return $response;
+        }
+
+        // Get to know if the user is already enrolled in the course.
+        $contextid = \context_course::instance($course->id)->id;
+        $isuserenrolled = user_has_role_assignment($userid, $roleid, $contextid);
+
+        // Enroll or unenroll the user based on the action.
+        if ($action === 'enroll') {
+            // If the user is already enrolled, return the response.
+            if ($isuserenrolled) {
+                $response['message'] = get_string('api_user_already_enrolled', $pluginname, $courseid);
+                return $response;
+            }
+            // If the user is not enrolled, enroll the user.
+            $enroll->enrol_user($manualinstance, $userid, $roleid);
+        } else if ($action === 'unenroll') {
+            // If the user is not enrolled, return the response.
+            if (!$isuserenrolled) {
+                $response['message'] = get_string('api_user_already_unenrolled', $pluginname, $courseid);
+                return $response;
+            }
+            // If the user is enrolled, unenroll the user.
+            $enroll->unenrol_user($manualinstance, $userid);
+        }
+
+        // Prepare the data string for the response.
+        $datastring = new stdClass();
+        $datastring->username = $user->username;
+        $datastring->courseid = $courseid;
+        $datastring->action = '';
+        if ($action === 'unenroll') {
+            $datastring->action = get_string('unenrolled', $pluginname);
+        } else if ($action === 'enroll') {
+            $datastring->action = get_string('enrolled', $pluginname);
+        }
+
+        // Prepare the response.
+        $response['message'] = get_string('api_enrollment_updated', $pluginname, $datastring);
+        $response['status'] = 'success';;
+
+        return $response;
+    }
+
+    /**
+     * Returns the description of the parameters required for editing an enrollment.
+     *
+     * @return external_function_parameters The parameters required for the function.
+     */
+    public static function edit_enrollment_parameters(): external_function_parameters {
+        $coursedesc = 'Reference to the course where the user will be enrolled.';
+        $userdesc = 'Reference to the user that will be enrolled.';
+        $actiondesc = 'The action to perform. Either "enroll" or "unenroll".';
+        $roledesc = 'The role id to assign to the user.';
+
+        return new external_function_parameters(
+            [
+                'courseid' => new external_value(PARAM_INT, $coursedesc, VALUE_REQUIRED),
+                'userid' => new external_value(PARAM_INT, $userdesc, VALUE_REQUIRED),
+                'action' => new external_value(PARAM_TEXT, $actiondesc, VALUE_REQUIRED),
+                'roleid' => new external_value(PARAM_INT, $roledesc, VALUE_OPTIONAL),
+            ]
+        );
+    }
+
+    /**
+     * Returns the description of the edit_enrollment_returns function.
+     *
+     * @return external_single_structure The structure of the returned data.
+     */
+    public static function edit_enrollment_returns(): external_single_structure {
+        return new external_single_structure(
+            [
+                'action' => new external_value(PARAM_TEXT, 'The action that was performed.', VALUE_REQUIRED),
+                'status' => new external_value(PARAM_TEXT, 'The status of the operation.', VALUE_REQUIRED),
+                'message' => new external_value(PARAM_TEXT, 'The result of the operation.', VALUE_REQUIRED),
             ]
         );
     }
