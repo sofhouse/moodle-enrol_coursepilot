@@ -25,7 +25,11 @@
 
 namespace enrol_coursepilot\external;
 
+global $CFG;
+require_once($CFG->dirroot . "/enrol/coursepilot/lib.php");
+
 use advanced_testcase;
+use core\plugininfo\enrol;
 
 /**
  * Class external_test
@@ -330,12 +334,16 @@ class external_test extends advanced_testcase {
         ];
         $this->set_enrol_coursepilot_settings($data);
 
+        // Get student role id.
+        $studentrole = enrol_coursepilot_get_valid_roles('student')[0];
+        $teacherrole = enrol_coursepilot_get_valid_roles('teacher')[0];
+
         // Attempt to edit an enrollment.
         $enrollment = \enrol_coursepilot\external::edit_enrollment(
             1,
             2,
             3,
-            5,
+            $studentrole,
         );
 
         // Assert that the enrollment editing failed due to the plugin being disabled.
@@ -352,7 +360,7 @@ class external_test extends advanced_testcase {
             1,
             2,
             3, // Invalid action.
-            'student' // Invalid roleid.
+            'student' // Invalid roleid field.
         );
 
         // Assert that the enrollment editing failed due to invalid parameters.
@@ -365,7 +373,7 @@ class external_test extends advanced_testcase {
             1, // Invalid course or doesn't belong to a formation category.
             2,
             'enroll',
-            5,
+            roleid: $studentrole,
         );
 
         // Assert that the enrollment editing failed due to the course not belonging to a formation category.
@@ -401,7 +409,7 @@ class external_test extends advanced_testcase {
             $course->id,
             100, // Invalid user.
             'enroll',
-            5,
+            $studentrole,
         );
 
         // Assert that the enrollment editing failed due to the user not existing.
@@ -414,7 +422,7 @@ class external_test extends advanced_testcase {
             $course->id,
             $user->id,
             'enroll',
-            5,
+            $studentrole,
         );
 
         // Construct the expected message.
@@ -433,7 +441,7 @@ class external_test extends advanced_testcase {
             $course->id,
             $user->id,
             'enroll',
-            5,
+            $studentrole,
         );
 
         // Construct the expected message.
@@ -448,7 +456,7 @@ class external_test extends advanced_testcase {
             $course->id,
             $user->id,
             'unenroll',
-            5,
+            $studentrole,
         );
 
         // Construct the expected message.
@@ -467,7 +475,7 @@ class external_test extends advanced_testcase {
             $course->id,
             $user->id,
             'unenroll',
-            5,
+            $studentrole,
         );
 
         // Construct the expected message.
@@ -482,7 +490,7 @@ class external_test extends advanced_testcase {
             $course->id,
             $user->id,
             'enroll',
-            3,
+            $teacherrole,
         );
 
         // Construct the expected message.

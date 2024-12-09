@@ -27,8 +27,10 @@ namespace enrol_coursepilot;
 defined('MOODLE_INTERNAL') || die;
 
 global $CFG;
+require_once($CFG->dirroot . "/enrol/coursepilot/lib.php");
 require_once($CFG->libdir . "/externallib.php");
 require_once($CFG->dirroot . "/course/externallib.php");
+require_once($CFG->dirroot . '/lib/accesslib.php');
 require_once($CFG->dirroot . '/backup/util/includes/backup_includes.php');
 
 use external_api;
@@ -49,7 +51,7 @@ class external extends external_api {
      * @param string $name Optional. The name of the course category to filter by.
      * @return array The settings for the specified course categories.
      */
-    public static function get_settings_course_categories($name = '') {
+    public static function get_settings_course_categories($name = ''): array {
         global $DB;
 
         // Validate that the name is not empty.
@@ -90,7 +92,7 @@ class external extends external_api {
      *
      * @return array
      */
-    public static function get_template_categories() {
+    public static function get_template_categories(): array {
         return self::get_settings_course_categories('templatecategories');
     }
 
@@ -99,7 +101,7 @@ class external extends external_api {
      *
      * @return external_function_parameters
      */
-    public static function get_template_categories_parameters() {
+    public static function get_template_categories_parameters(): external_function_parameters {
         return new external_function_parameters(
             []
         );
@@ -126,7 +128,7 @@ class external extends external_api {
      *
      * @return array
      */
-    public static function get_formations_categories() {
+    public static function get_formations_categories(): array {
         return self::get_settings_course_categories('formationcategories');
     }
 
@@ -134,7 +136,7 @@ class external extends external_api {
      * Returns description of method parameters.
      * @return external_function_parameters
      */
-    public static function get_formations_categories_parameters() {
+    public static function get_formations_categories_parameters(): external_function_parameters {
         return new external_function_parameters(
             []
         );
@@ -170,7 +172,7 @@ class external extends external_api {
      * @throws moodle_exception If the course creation fails.
      */
     public static function create_course($templatecourseid, $targetformationscatid, $coursename,
-            $courseshortname, $summary = '', $idnumber = '') {
+            $courseshortname, $summary = '', $idnumber = ''): array {
         global $DB, $USER;
 
         $pluginname = 'enrol_coursepilot';
@@ -259,7 +261,7 @@ class external extends external_api {
      *
      * @return external_function_parameters The parameters required for the function.
      */
-    public static function create_course_parameters() {
+    public static function create_course_parameters(): external_function_parameters {
         $templatedesc = 'Reference to a course that lives under one of the template course categories.';
         $targetdesc = 'Reference to the target category id where the course will be created.';
 
@@ -280,7 +282,7 @@ class external extends external_api {
      *
      * @return external_single_structure The structure of the returned data.
      */
-    public static function create_course_returns() {
+    public static function create_course_returns(): external_single_structure {
         return new external_single_structure(
             [
                 'process' => new external_value(PARAM_TEXT, 'The process that is currently running.', VALUE_REQUIRED),
@@ -309,13 +311,18 @@ class external extends external_api {
      *
      * @return array The result of the operation.
      */
-    public static function edit_enrollment($courseid, $userid, $action = '', $roleid = 5) {
+    public static function edit_enrollment($courseid, $userid, $action = '', $roleid = 0): array {
         global $DB;
 
         // Initialize the variables to validate the parameters.
         $pluginname = 'enrol_coursepilot';
         $validactions = ['enroll', 'unenroll'];
-        $validroles = [3, 4, 5];
+        $validroles = enrol_coursepilot_get_valid_roles();
+
+        // I the role id is empty, set the default role id to student.
+        if (empty($roleid)) {
+            $roleid = $DB->get_field('role', 'id', ['shortname' => 'student']);
+        }
 
         // Initialize the response.
         $response = [
@@ -339,7 +346,7 @@ class external extends external_api {
         }
 
         // Validate the role id.
-        if (!in_array($roleid, $validroles) && $action === 'enroll') {
+        if (!in_array($roleid, $validroles)) {
             $response['message'] = get_string('api_invalid_roleid_parameter', $pluginname, $roleid);
             return $response;
         }
@@ -439,7 +446,7 @@ class external extends external_api {
      *
      * @return external_function_parameters The parameters required for the function.
      */
-    public static function edit_enrollment_parameters() {
+    public static function edit_enrollment_parameters(): external_function_parameters {
         $coursedesc = 'Reference to the course where the user will be enrolled.';
         $userdesc = 'Reference to the user that will be enrolled.';
         $actiondesc = 'The action to perform. Either "enroll" or "unenroll".';
@@ -450,7 +457,7 @@ class external extends external_api {
                 'courseid' => new external_value(PARAM_INT, $coursedesc, VALUE_REQUIRED),
                 'userid' => new external_value(PARAM_INT, $userdesc, VALUE_REQUIRED),
                 'action' => new external_value(PARAM_TEXT, $actiondesc, VALUE_REQUIRED),
-                'roleid' => new external_value(PARAM_INT, $roledesc, VALUE_DEFAULT, 5),
+                'roleid' => new external_value(PARAM_INT, $roledesc, VALUE_OPTIONAL),
             ]
         );
     }
@@ -460,7 +467,7 @@ class external extends external_api {
      *
      * @return external_single_structure The structure of the returned data.
      */
-    public static function edit_enrollment_returns() {
+    public static function edit_enrollment_returns(): external_single_structure {
         return new external_single_structure(
             [
                 'action' => new external_value(PARAM_TEXT, 'The action that was performed.', VALUE_REQUIRED),

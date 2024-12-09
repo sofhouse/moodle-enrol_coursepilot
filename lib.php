@@ -76,4 +76,33 @@ class enrol_coursepilot_plugin extends enrol_plugin {
     public function can_add_instance($courseid) {
         return true;
     }
+
+}
+
+/**
+ * Retrieves a list of valid roles for course enrollment.
+ *
+ * @param string|null $archetype Optional. The role archetype to filter roles by. Default is null.
+ * @return array An array of valid roles.
+ */
+function enrol_coursepilot_get_valid_roles($archetype = '') {
+    // Possible archetypes to fetch roles from.
+    $archetypes = ['student', 'teacher', 'editingteacher'];
+    $validroles = [];
+
+    // If a specific archetype is provided, use it.
+    if (!empty($archetype) && is_string($archetype)) {
+        $archetypes = [$archetype];
+    }
+
+    // Fetch roles based on the provided archetypes.
+    foreach ($archetypes as $archetype) {
+        $roles = get_archetype_roles($archetype);
+        foreach ($roles as $role) {
+            $validroles[] = $role->id;
+        }
+    }
+
+    // Return the valid roles.
+    return $validroles;
 }
