@@ -334,7 +334,7 @@ class external_test extends advanced_testcase {
         ];
         $this->set_enrol_coursepilot_settings($data);
 
-        // Get student role id.
+        // Get roles for student and teacher.
         $studentrole = enrol_coursepilot_get_valid_roles('student')[0];
         $teacherrole = enrol_coursepilot_get_valid_roles('teacher')[0];
 
