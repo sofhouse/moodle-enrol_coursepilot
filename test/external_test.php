@@ -25,11 +25,12 @@
 
 namespace enrol_coursepilot\external;
 
+defined('MOODLE_INTERNAL') || die();
+
 global $CFG;
 require_once($CFG->dirroot . "/enrol/coursepilot/lib.php");
 
 use advanced_testcase;
-use core\plugininfo\enrol;
 
 /**
  * Class external_test
