@@ -22,10 +22,9 @@
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-// The base class 'enrol_plugin' can be found at lib/enrollib.php. Override methods as necessary.
-
 /**
  * Class enrol_coursepilot_plugin.
+ * The base class 'enrol_plugin' can be found at lib/enrollib.php.
  */
 class enrol_coursepilot_plugin extends enrol_plugin {
 

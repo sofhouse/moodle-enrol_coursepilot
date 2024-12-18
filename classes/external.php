@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * External API.
+ * Represents an external class that extends the external_api class.
  *
  * @package     enrol_coursepilot
  * @copyright   2024 Diego Monroy <dfelipe.monroyc@gmail.com>
